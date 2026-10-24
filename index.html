@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Retro Games</title>
+<meta name="application-name" content="Retro Games">
+<meta name="apple-mobile-web-app-title" content="Retro Games">
+<style>
+:root{--bg:#f2f2f5;--card:#fff;--tx:#1b1b1f;--mut:#6b6b76;--ac:#d6282f;--bd:#d9d9e0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121215;--card:#1d1d22;--tx:#f0f0f3;--mut:#9a9aa6;--bd:#33333b}}
+:root[data-theme="dark"]{--bg:#121215;--card:#1d1d22;--tx:#f0f0f3;--mut:#9a9aa6;--bd:#33333b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:12px}
+h1{font-size:18px;margin:4px 0 10px}
+#screen{background:#000;border-radius:10px;position:relative;overflow:hidden;aspect-ratio:256/240;width:100%;max-height:70vh;margin:0 auto}
+canvas{width:100%;height:100%;image-rendering:pixelated;display:block;object-fit:contain}
+#hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ddd;text-align:center;padding:16px;gap:8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;align-items:center}
+button,.btn{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px 13px;font:inherit;cursor:pointer}
+.pri{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+input[type=range]{width:90px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:10px}
+table{width:100%;border-collapse:collapse}td{padding:4px 2px}
+td button{width:100%;padding:6px;font-size:13px}
+.listen{outline:2px solid var(--ac)}
+#status{color:var(--mut);font-size:13px}
+#touch{display:none;justify-content:space-between;align-items:center;margin:14px 4px 4px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+@media (pointer:coarse){#touch{display:flex}}
+#dpad{position:relative;width:156px;height:156px;border-radius:50%;background:var(--card);border:1px solid var(--bd);touch-action:none}
+#dpad i{position:absolute;font-style:normal;color:var(--mut);font-size:22px}
+#dpad .u{top:10px;left:50%;transform:translateX(-50%)}#dpad .d{bottom:10px;left:50%;transform:translateX(-50%)}
+#dpad .l{left:14px;top:50%;transform:translateY(-50%)}#dpad .r{right:14px;top:50%;transform:translateY(-50%)}
+.tb{background:var(--card);border:1px solid var(--bd);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;touch-action:none}
+.tb.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.ab{position:relative;width:160px;height:120px}.ab .tb{position:absolute;width:76px;height:76px}
+.ab [data-b=B]{left:0;top:44px}.ab [data-b=A]{right:0;top:0}
+.ss{display:flex;gap:10px;justify-content:center;margin:8px 0}.ss .tb{padding:10px 16px;font-size:12px;border-radius:18px}
+.ab{width:214px;height:126px}.ab .tb{width:70px;height:70px}
+.ab [data-s=S1]{left:0;top:54px}.ab [data-s=S2]{left:72px;top:28px}.ab [data-s=S3]{left:144px;top:2px}
+#exitfs{display:none}
+#stage.fs{position:fixed;inset:0;z-index:99;background:#000;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0) 0 0}
+#stage.fs #screen{width:100%;height:100%;max-height:none;aspect-ratio:auto!important;border-radius:0}
+#stage.fs #touch{position:absolute;left:0;right:0;bottom:0;margin:0;padding:0 18px calc(14px + env(safe-area-inset-bottom,0px));pointer-events:none;opacity:.55}
+#stage.fs #touch>*{pointer-events:auto}
+#stage.fs .ss{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0;pointer-events:none;opacity:.55}
+#stage.fs .ss .tb{pointer-events:auto}
+#stage.fs #exitfs{display:block;position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:10px;opacity:.6;background:#000;color:#fff;border:1px solid #555;z-index:2}
+#stage.fs #hint{pointer-events:none}
+.ss .tb{background:#2d2d36!important;color:#fff!important;border:2px solid #9a9aa8!important;min-width:88px;min-height:38px;font-size:13px;letter-spacing:.5px}
+.ss .tb.on{background:var(--ac)!important;border-color:var(--ac)!important}
+body.touch #touch,body.force #touch{display:flex}
+select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px;font:inherit}
+</style>
+</head>
+<body>
+<main>
+<h1>🎮 Retro Games</h1>
+<div id="stage">
+  <div id="screen">
+    <canvas id="cv" width="256" height="240"></canvas>
+    <div id="hint"><div style="font-size:40px">🕹️</div><div style="font-weight:700;font-size:20px">Retro Games</div><div>Clique em <b>Adicionar jogo</b> e escolha uma ROM<br><b>.nes</b>, <b>.md / .gen / .bin</b> ou <b>.gba</b>,<br>ou escolha um dos <b>Jogos prontos</b> no menu.</div></div>
+  </div>
+  <div class="ss" id="ssbar"><div class="tb" data-s="L" style="display:none">L</div><div class="tb" data-s="SELECT">SELECT</div><div class="tb" data-s="START">START</div><div class="tb" data-s="R" style="display:none">R</div></div>
+  <div id="touch">
+    <div id="dpad"><i class="u">▲</i><i class="d">▼</i><i class="l">◀</i><i class="r">▶</i></div>
+    <div class="ab"><div class="tb" data-s="S1">B</div><div class="tb" data-s="S2">A</div><div class="tb" data-s="S3" style="display:none">C</div></div>
+  </div>
+  <button id="exitfs">✕ Sair</button>
+</div>
+<div class="bar">
+  <label class="btn pri">➕ Adicionar jogo<input id="file" type="file" hidden></label>
+  <button id="pause">⏸ Pausar</button>
+  <button id="reset">🔄 Reiniciar</button>
+  <button id="fs">⛶ Tela cheia</button>
+  <button id="home" class="pri">🎲 Jogos prontos</button>
+  <button id="ctl">🎮 Botões na tela</button>
+  <select id="eng" title="Motor do Nintendinho"><option value="acc">NES: preciso</option><option value="lite">NES: leve</option></select>
+  <select id="gbacore" title="Motor do GBA"><option value="mgba">GBA: mGBA</option><option value="vba_next">GBA: VBA Next</option></select>
+  <span>🔊 <input id="vol" type="range" min="0" max="100" value="40"></span>
+</div>
+<div id="status">Nenhum jogo carregado. (versão 10)</div>
+
+<details class="card" open>
+  <summary><b>Controles</b> (clique num botão e aperte a tecla / botão do controle)</summary>
+  <p id="gpinfo" style="color:var(--mut);font-size:13px;margin:6px 0">Controle: nenhum detectado. Conecte e aperte qualquer botão.</p>
+  <table id="map"><tr><td></td><td><b>Teclado</b></td><td><b>Controle</b></td></tr></table>
+  <button id="defaults" style="margin-top:8px">Restaurar padrão</button>
+</details>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/jsnes@1.2.1/dist/jsnes.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nostalgist@0.21.1"></script>
+<script>
+(function(){
+const ACTIONS=['UP','DOWN','LEFT','RIGHT','A','B','SELECT','START'];
+const NAMES={UP:'Cima',DOWN:'Baixo',LEFT:'Esquerda',RIGHT:'Direita',A:'A',B:'B',SELECT:'Select',START:'Start'};
+const DEF_KB={UP:'ArrowUp',DOWN:'ArrowDown',LEFT:'ArrowLeft',RIGHT:'ArrowRight',A:'KeyX',B:'KeyZ',SELECT:'ShiftRight',START:'Enter'};
+const DEF_GP={UP:12,DOWN:13,LEFT:14,RIGHT:15,A:1,B:0,SELECT:8,START:9};
+let kbMap={...DEF_KB},gpMap={...DEF_GP};
+try{const s=JSON.parse(localStorage.getItem('nesmap')||'null');if(s){kbMap={...DEF_KB,...s.kb};gpMap={...DEF_GP,...s.gp}}}catch(e){}
+const save=()=>{try{localStorage.setItem('nesmap',JSON.stringify({kb:kbMap,gp:gpMap}))}catch(e){}};
+
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d'),img=ctx.createImageData(256,240),buf32=new Uint32Array(img.data.buffer);
+const status=$('status');
+let system='nes',emu=null,nes=null,running=false,paused=false,ac=null,vol=0.4,node=null;
+const BUF=8192,MASK=BUF-1,AL=new Float32Array(BUF),AR=new Float32Array(BUF);let aw=0,ar=0;
+
+if(typeof jsnes==='undefined'){status.textContent='Erro: não consegui carregar o núcleo do emulador (jsnes). Verifique a internet.'}
+
+let started=false,fy=[0,0];
+function initAudio(){
+  if(ac){ac.resume();return}
+  try{
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    node=ac.createScriptProcessor(2048,0,2);
+    node.onaudioprocess=e=>{
+      const l=e.outputBuffer.getChannelData(0),r=e.outputBuffer.getChannelData(1);
+      if(!started&&aw-ar>2048)started=true;
+      for(let i=0;i<l.length;i++){
+        let a=0,b=0;
+        if(started&&ar<aw){a=AL[ar&MASK];b=AR[ar&MASK];ar++}else{started=started&&ar<aw?started:false}
+        // filtro passa-baixa suave + limitador (tira o "estouro")
+        fy[0]+=0.55*(a-fy[0]);fy[1]+=0.55*(b-fy[1]);
+        l[i]=Math.tanh(fy[0]*vol*1.5);r[i]=Math.tanh(fy[1]*vol*1.5);
+      }
+    };
+    node.connect(ac.destination);
+  }catch(e){ac=null}
+}
+
+function startRom(data,name){
+  if(typeof jsnes==='undefined')return;
+  system='nes';stopNative();stopMd();setSlots();$('screen').style.aspectRatio='256/240';
+  initAudio();
+  aw=ar=0;started=false;
+  nes=new jsnes.NES({
+    sampleRate:ac?ac.sampleRate:44100,
+    onFrame:fb=>{for(let i=0;i<fb.length;i++)buf32[i]=0xFF000000|fb[i];ctx.putImageData(img,0,0)},
+    onAudioSample:(l,r)=>{if(aw-ar>=BUF)ar++;AL[aw&MASK]=l;AR[aw&MASK]=r;aw++}
+  });
+  try{nes.loadROM(data)}catch(err){status.textContent='Não consegui abrir esse arquivo. Use uma ROM .nes válida (mapper suportado).';nes=null;return}
+  $('hint').style.display='none';
+  paused=false;$('pause').textContent='⏸ Pausar';
+  status.textContent='Jogando: '+name;
+  lastSent={};
+  if(!running){running=true;last=performance.now();requestAnimationFrame(loop)}
+}
+
+async function stopMd(){
+  if(emu){const e=emu;emu=null;try{await e.exit({removeCanvas:false})}catch(x){}}
+  const m=$('mdcv');if(m)m.remove();cv.style.display='block';
+}
+async function startRetro(f,core,sys){
+  if(typeof Nostalgist==='undefined')return false;
+  stopNative();nes=null;system=sys;setSlots();lastSent={};
+  $('screen').style.aspectRatio=sys==='gba'?'3/2':'4/3';
+  status.textContent='Carregando o núcleo… (só na primeira vez demora)';
+  await stopMd();
+  cv.style.display='none';$('hint').style.display='none';
+  const c=document.createElement('canvas');c.id='mdcv';
+  c.style.cssText='width:100%;height:100%;object-fit:contain;display:block;background:#000';
+  $('screen').appendChild(c);
+  try{
+    emu=await Nostalgist.launch({core,rom:f,element:c,style:{position:'static',width:'100%',height:'100%'},retroarchConfig:{audio_latency:64,audio_volume:-6},retroarchCoreConfig:{genesis_plus_gx_no_sprite_limit:'enabled',fceumm_nospritelimit:'enabled'}});
+    paused=false;$('pause').textContent='⏸ Pausar';
+    status.textContent='Jogando: '+f.name+(sys==='gba'?' · tela preta? troque o motor GBA ao lado e carregue de novo':'');
+    return true;
+  }catch(err){
+    console.error(err);emu=null;c.remove();cv.style.display='block';
+    status.textContent='Não consegui rodar com o motor preciso ('+(err&&err.message?err.message:err)+')';
+    return false;
+  }
+}
+function runJsnes(f){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const u8=new Uint8Array(fr.result);let s='';
+    for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+    startRom(s,f.name);
+  };
+  fr.readAsArrayBuffer(f);
+}
+async function loadFile(f){
+  if(!f)return;
+  const n=f.name;
+  if(/\.nes$/i.test(n)){
+    if($('eng').value==='acc'&&await startRetro(f,'fceumm','nes2'))return;
+    runJsnes(f);
+  }else if(/\.(md|gen|smd|bin)$/i.test(n)){
+    if(!await startRetro(f,'genesis_plus_gx','md'))status.textContent='Não consegui rodar essa ROM de Mega Drive. Ele precisa de internet para baixar o núcleo.';
+  }else if(/\.gba$/i.test(n)){
+    if(!await startRetro(f,$('gbacore').value,'gba'))status.textContent='Não consegui rodar o GBA. Ele precisa de internet para baixar o núcleo.';
+  }else status.textContent='Formato não suportado. Use .nes (Nintendinho) ou .md/.gen/.bin (Mega Drive). ZIPs precisam ser extraídos.';
+}
+$('file').addEventListener('change',e=>{loadFile(e.target.files[0]);e.target.value=''});
+['dragover','drop'].forEach(ev=>document.body.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop')loadFile(e.dataTransfer.files[0])}));
+
+// Loop a 60 fps fixos
+let last=0,acc=0;
+function loop(t){
+  requestAnimationFrame(loop);
+  pollPad();
+  if(system!=='nes'||!nes||paused){last=t;return}
+  if(ac&&ac.state==='running'){
+    // o relógio do áudio manda: mantém ~3000 amostras no buffer
+    const fill=aw-ar;
+    if(fill<1200){nes.frame();nes.frame()}else if(fill<3000){nes.frame()}
+    last=t;return;
+  }
+  acc+=Math.min(t-last,100);last=t;
+  let n=0;
+  while(acc>=16.639&&n<3){nes.frame();acc-=16.639;n++}
+}
+
+// Entradas combinadas (teclado + controle + toque)
+const src={kb:{},gp:{},tc:{}};let lastSent={};
+const ALL=ACTIONS.concat(['C','L','R']);
+const NESN={UP:'up',DOWN:'down',LEFT:'left',RIGHT:'right',A:'a',B:'b',L:'l',R:'r',START:'start',SELECT:'select'};
+const MDN={UP:'up',DOWN:'down',LEFT:'left',RIGHT:'right',A:'y',B:'b',C:'a',START:'start',SELECT:'select'};
+const BTN=()=>({UP:jsnes.Controller.BUTTON_UP,DOWN:jsnes.Controller.BUTTON_DOWN,LEFT:jsnes.Controller.BUTTON_LEFT,RIGHT:jsnes.Controller.BUTTON_RIGHT,A:jsnes.Controller.BUTTON_A,B:jsnes.Controller.BUTTON_B,SELECT:jsnes.Controller.BUTTON_SELECT,START:jsnes.Controller.BUTTON_START});
+function sync(){
+  if(system==='nes'&&!nes)return;if(system!=='nes'&&!emu)return;
+  const B=system==='nes'?BTN():null;
+  for(const a of ALL){
+    const v=!!(system==='nes'?(src.kb[a]||src.gp[a]||src.tc[a]):src.tc[a]);
+    if(lastSent[a]===v)continue;lastSent[a]=v;
+    if(system==='nes'){if(B[a]!==undefined)v?nes.buttonDown(1,B[a]):nes.buttonUp(1,B[a])}
+    else{const n2=(system==='md'?MDN:NESN)[a];if(n2){try{v?emu.pressDown(n2):emu.pressUp(n2)}catch(e){}}}
+  }
+}
+
+// Teclado + remapeamento
+let listening=null;
+addEventListener('keydown',e=>{
+  if(listening&&listening.type==='kb'){
+    e.preventDefault();
+    if(e.code!=='Escape'){kbMap[listening.a]=e.code;save()}
+    stopListen();return;
+  }
+  if(system!=='nes'&&system!=='native')return;
+  const a=ACTIONS.find(x=>kbMap[x]===e.code);
+  if(a){e.preventDefault();src.kb[a]=true;sync()}
+});
+addEventListener('keyup',e=>{const a=ACTIONS.find(x=>kbMap[x]===e.code);if(a){src.kb[a]=false;sync()}});
+addEventListener('blur',()=>{src.kb={};src.tc={};sync()});
+
+// Controle (Gamepad API)
+let prevBtns={};
+function pollPad(){
+  if(system!=='nes'&&system!=='native')return;
+  const pads=(navigator.getGamepads?navigator.getGamepads():[])||[];
+  const gp=[...pads].find(p=>p&&p.connected);
+  if(!gp){return}
+  const pressed=i=>gp.buttons[i]&&gp.buttons[i].pressed;
+  if(listening&&listening.type==='gp'){
+    for(let i=0;i<gp.buttons.length;i++){
+      if(pressed(i)&&!prevBtns[i]){gpMap[listening.a]=i;save();prevBtns[i]=true;stopListen();return}
+    }
+  }
+  prevBtns=gp.buttons.map(b=>b.pressed);
+  const ax=gp.axes,th=0.5,g={};
+  for(const a of ACTIONS)g[a]=!!pressed(gpMap[a]);
+  // botões alternativos (layout padrão): Y→B, X→A
+  if(pressed(2))g.B=true;if(pressed(3))g.A=true;
+  if(ax[0]<-th)g.LEFT=true;if(ax[0]>th)g.RIGHT=true;if(ax[1]<-th)g.UP=true;if(ax[1]>th)g.DOWN=true;
+  src.gp=g;
+  $('gpinfo').textContent='Controle: '+gp.id.slice(0,50);
+  if(!listening)sync();
+}
+addEventListener('gamepadconnected',()=>{$('gpinfo').textContent='Controle conectado! Aperte um botão.'});
+
+// Toque (multitoque, direcional deslizante)
+const SLOTS={nes:{S1:'B',S2:'A',S3:null},md:{S1:'A',S2:'B',S3:'C'}};
+function setSlots(){
+  const sk=system==='md'?'md':'nes',m=SLOTS[sk],lab={nes:{S1:'B',S2:'A'},md:{S1:'A',S2:'B',S3:'C'}}[sk];
+  document.querySelectorAll('.tb[data-s]').forEach(el=>{const k=el.dataset.s;if(k==='L'||k==='R'){el.style.display=system==='gba'?'flex':'none';return}if(!/^S\d$/.test(k))return;el.textContent=lab[k]||'';el.style.display=m[k]?'flex':'none'});
+}
+const actOf=el=>{const k=el.dataset.s;return /^S\d$/.test(k)?SLOTS[system==='md'?'md':'nes'][k]:k};
+document.addEventListener('contextmenu',e=>{if(e.target.closest('#touch,#ssbar'))e.preventDefault()});
+document.querySelectorAll('.tb[data-s]').forEach(el=>{
+  let held=null;
+  el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);held=actOf(el);if(!held)return;src.tc[held]=true;el.classList.add('on');sync();if(navigator.vibrate)navigator.vibrate(8)});
+  const off=()=>{if(held){src.tc[held]=false;held=null;sync()}el.classList.remove('on')};
+  el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);
+});
+const dp=$('dpad');let dpOn=false;
+function dpDir(e){
+  const r=dp.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5,d=Math.hypot(x,y),t=src.tc;
+  t.UP=t.DOWN=t.LEFT=t.RIGHT=false;
+  if(d>.1){t.LEFT=x<-.17;t.RIGHT=x>.17;t.UP=y<-.17;t.DOWN=y>.17}
+  sync();
+}
+dp.addEventListener('pointerdown',e=>{e.preventDefault();dp.setPointerCapture(e.pointerId);dpOn=true;dpDir(e)});
+dp.addEventListener('pointermove',e=>{if(dpOn)dpDir(e)});
+const dpOff=()=>{dpOn=false;const t=src.tc;t.UP=t.DOWN=t.LEFT=t.RIGHT=false;sync()};
+dp.addEventListener('pointerup',dpOff);dp.addEventListener('pointercancel',dpOff);
+
+// Tabela de controles
+function stopListen(){listening=null;renderMap()}
+function renderMap(){
+  const t=$('map');t.innerHTML='<tr><td></td><td><b>Teclado</b></td><td><b>Controle</b></td></tr>';
+  for(const a of ACTIONS){
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+NAMES[a]+'</td>';
+    for(const type of ['kb','gp']){
+      const td=document.createElement('td'),b=document.createElement('button');
+      const isL=listening&&listening.a===a&&listening.type===type;
+      b.textContent=isL?'Aperte...':(type==='kb'?kbMap[a].replace('Key','').replace('Arrow','')+'':'Botão '+gpMap[a]);
+      if(isL)b.className='listen';
+      b.onclick=()=>{listening={a,type};renderMap()};
+      td.appendChild(b);tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  }
+}
+$('defaults').onclick=()=>{kbMap={...DEF_KB};gpMap={...DEF_GP};save();listening=null;renderMap()};
+renderMap();
+
+// Jogos prontos (originais, inspirados em clássicos)
+const txt=(c,t,x,y)=>{c.fillStyle='#fff';c.font='bold 12px monospace';c.fillText(t,x,y)};
+const msg=(c,a,b)=>{c.fillStyle='rgba(0,0,0,.65)';c.fillRect(0,90,256,60);c.fillStyle='#fff';c.textAlign='center';c.font='bold 20px monospace';c.fillText(a,128,118);c.font='12px monospace';c.fillText(b,128,138);c.textAlign='left'};
+const GAMES={};
+GAMES.snake=(lv=1)=>{const C=16,R=15;let s,d,nd,f,sc,dead,t;
+  const food=()=>{do{f={x:Math.random()*C|0,y:Math.random()*R|0}}while(s.some(q=>q.x==f.x&&q.y==f.y))};
+  const init=()=>{s=[{x:8,y:7},{x:7,y:7},{x:6,y:7}];d=nd={x:1,y:0};sc=0;dead=false;t=0;food()};init();
+  return{name:'Cobrinha',help:'direcional move · Start reinicia',
+  update(h,p){
+    if(p.UP&&d.y==0)nd={x:0,y:-1};if(p.DOWN&&d.y==0)nd={x:0,y:1};if(p.LEFT&&d.x==0)nd={x:-1,y:0};if(p.RIGHT&&d.x==0)nd={x:1,y:0};
+    if(dead){if(p.START||p.A)init();return}
+    if(++t<Math.max(3,[11,9,6][lv]-(sc/5|0)))return;t=0;d=nd;
+    const n={x:s[0].x+d.x,y:s[0].y+d.y};
+    if(n.x<0||n.y<0||n.x>=C||n.y>=R||s.some(q=>q.x==n.x&&q.y==n.y)){dead=true;return}
+    s.unshift(n);if(n.x==f.x&&n.y==f.y){sc++;food()}else s.pop()},
+  draw(c){c.fillStyle='#10201a';c.fillRect(0,0,256,240);c.fillStyle='#ff5a5f';c.fillRect(f.x*16+2,f.y*16+2,12,12);
+    s.forEach((q,i)=>{c.fillStyle=i?'#4cd964':'#a8ff7a';c.fillRect(q.x*16+1,q.y*16+1,14,14)});
+    txt(c,'Pontos '+sc,6,14);if(dead)msg(c,'FIM DE JOGO','Start para jogar de novo')}}};
+GAMES.breakout=(lv=1)=>{let px,bx,by,vx,vy,bl,sc,lives,over,serve;
+  const rs=()=>{bx=128;by=216;vx=2*(Math.random()<.5?-1:1);vy=-[2.2,2.8,3.5][lv];serve=true};
+  const init=()=>{px=108;sc=0;lives=3;over=false;bl=[];for(let r=0;r<6;r++)for(let k=0;k<10;k++)bl.push({x:8+k*24,y:30+r*12,r});rs()};init();
+  return{name:'Quebra-Blocos',help:'← → move · A lança a bola',
+  update(h,p){
+    if(h.LEFT)px-=4;if(h.RIGHT)px+=4;px=Math.max(0,Math.min(216,px));
+    if(over||!bl.length){if(p.START||p.A)init();return}
+    if(serve){bx=px+20;by=216;if(p.A||p.B)serve=false;return}
+    bx+=vx;by+=vy;if(bx<3||bx>253)vx=-vx;if(by<3)vy=-vy;
+    if(vy>0&&by>218&&by<228&&bx>px-3&&bx<px+43){vy=-Math.abs(vy);vx=(bx-(px+20))/7}
+    for(let i=0;i<bl.length;i++){const b=bl[i];if(bx>b.x&&bx<b.x+22&&by>b.y&&by<b.y+10){bl.splice(i,1);vy=-vy;sc+=10;break}}
+    if(by>244){if(--lives<=0)over=true;else rs()}},
+  draw(c){c.fillStyle='#14142a';c.fillRect(0,0,256,240);
+    bl.forEach(b=>{c.fillStyle='hsl('+(b.r*55)+',70%,55%)';c.fillRect(b.x,b.y,22,10)});
+    c.fillStyle='#ddd';c.fillRect(px,222,40,6);c.fillStyle='#fff';c.fillRect(bx-3,by-3,6,6);
+    txt(c,'Pontos '+sc+'   Vidas '+lives,6,14);
+    if(over)msg(c,'FIM DE JOGO','Start para jogar de novo');else if(!bl.length)msg(c,'VOCÊ VENCEU!','Start para jogar de novo')}}};
+GAMES.nave=(lv=1)=>{let x,bs,es,sc,t,dead,cd,st=[];
+  for(let i=0;i<40;i++)st.push({x:Math.random()*256,y:Math.random()*240,v:.4+Math.random()});
+  const init=()=>{x=120;bs=[];es=[];sc=0;t=0;dead=false;cd=0};init();
+  return{name:'Defensor Espacial',help:'← → move · A atira · Start reinicia',
+  update(h,p){
+    st.forEach(q=>{q.y+=q.v;if(q.y>240){q.y=0;q.x=Math.random()*256}});
+    if(dead){if(p.START||p.A)init();return}
+    if(h.LEFT)x-=3;if(h.RIGHT)x+=3;x=Math.max(0,Math.min(240,x));
+    if(cd>0)cd--;if((h.A||h.B)&&!cd){bs.push({x:x+7,y:212});cd=12}
+    if(++t%Math.max(14,[75,60,42][lv]-(sc/2|0))==0)es.push({x:Math.random()*232,y:-16,v:1+Math.random()*1.2+sc/50});
+    bs.forEach(b=>b.y-=5);es.forEach(e=>e.y+=e.v);
+    for(const e of es){for(const b of bs)if(!e.d&&!b.d&&b.x>e.x-2&&b.x<e.x+18&&b.y>e.y&&b.y<e.y+16){e.d=b.d=1;sc++}
+      if(!e.d&&e.y+16>214&&e.x+16>x&&e.x<x+16)dead=true}
+    bs=bs.filter(b=>!b.d&&b.y>-6);es=es.filter(e=>!e.d&&e.y<250)},
+  draw(c){c.fillStyle='#050510';c.fillRect(0,0,256,240);c.fillStyle='#fff';st.forEach(q=>c.fillRect(q.x,q.y,1.5,1.5));
+    c.fillStyle='#ffd93d';bs.forEach(b=>c.fillRect(b.x,b.y,2,8));
+    c.fillStyle='#ff5a5f';es.forEach(e=>{c.fillRect(e.x+2,e.y+2,12,10);c.fillRect(e.x,e.y+8,16,4);c.fillRect(e.x+4,e.y+12,3,4);c.fillRect(e.x+9,e.y+12,3,4)});
+    c.fillStyle='#4cd9ff';c.fillRect(x+6,214,4,16);c.fillRect(x,224,16,6);c.fillRect(x+3,218,10,6);
+    txt(c,'Pontos '+sc,6,14);if(dead)msg(c,'FIM DE JOGO','Start para jogar de novo')}}};
+GAMES.menu=()=>{let i=0,t=0;const L=[['snake','🐍  Cobrinha'],['breakout','🧱  Quebra-Blocos'],['nave','🚀  Defensor Espacial']];
+  return{name:'Menu',help:'↑↓ escolhe · A ou Start joga · ou toque no jogo',
+  update(h,p){t++;if(p.UP)i=(i+L.length-1)%L.length;if(p.DOWN)i=(i+1)%L.length;if(p.A||p.START)startNative(L[i][0])},
+  tap(x,y){const k=Math.floor((y-92)/38);if(k>=0&&k<L.length&&x>24&&x<232){i=k;startNative(L[k][0])}},
+  draw(c){const g=c.createLinearGradient(0,0,0,240);g.addColorStop(0,'#1b1040');g.addColorStop(1,'#0b0b1a');c.fillStyle=g;c.fillRect(0,0,256,240);
+    c.textAlign='center';c.fillStyle='hsl('+(t*2%360)+',80%,65%)';c.font='bold 24px monospace';c.fillText('JOGOS PRONTOS',128,52);
+    c.fillStyle='#9a9aff';c.font='12px monospace';c.fillText('escolha um jogo para ver o menu dele',128,74);
+    L.forEach((it,k)=>{const y=92+k*38,sel=k==i;c.fillStyle=sel?'#d6282f':'#25254a';c.fillRect(24,y,208,32);c.strokeStyle=sel?'#fff':'#44448a';c.strokeRect(24.5,y+.5,207,31);c.fillStyle='#fff';c.font='bold 15px monospace';c.fillText(it[1],128,y+21)});
+    c.fillStyle='#8a8aa8';c.font='11px monospace';c.fillText('ROMs: botão ➕ Adicionar jogo',128,222);c.textAlign='left'}}};
+let ngRaf=0,curG=null,curObj=null,curFactory=null,curKind='';
+const INFO={snake:{name:'Cobrinha',icon:'🐍',how:'Direcional move · coma as frutas'},breakout:{name:'Quebra-Blocos',icon:'🧱',how:'← → move · A lança a bola'},nave:{name:'Defensor Espacial',icon:'🚀',how:'← → move · A atira'}};
+const LVL={snake:1,breakout:1,nave:1},LVN=['Fácil','Normal','Difícil'];
+const held=a=>!!(src.kb[a]||src.gp[a]||src.tc[a]);
+function stopNative(){if(ngRaf){cancelAnimationFrame(ngRaf);ngRaf=0}curG=null;curObj=null}
+function titleScreen(id){
+  const info=INFO[id];let i=0,t=0;
+  const act=()=>{if(i==0)runNative(()=>GAMES[id](LVL[id]),id,'game');else if(i==1)LVL[id]=(LVL[id]+1)%3;else startNative('menu')};
+  return{name:info.name,help:'↑↓ escolhe · ←→ muda dificuldade · A/Start confirma',
+  update(h,p){t++;if(p.UP)i=(i+2)%3;if(p.DOWN)i=(i+1)%3;
+    if(i==1){if(p.LEFT)LVL[id]=(LVL[id]+2)%3;if(p.RIGHT)LVL[id]=(LVL[id]+1)%3}
+    if(p.A||p.START)act()},
+  tap(x,y){const k=Math.floor((y-128)/34);if(k>=0&&k<3&&y-128-k*34<30&&x>24&&x<232){i=k;act()}},
+  draw(c){const g=c.createLinearGradient(0,0,0,240);g.addColorStop(0,'#10242e');g.addColorStop(1,'#0a0a16');c.fillStyle=g;c.fillRect(0,0,256,240);
+    c.textAlign='center';c.font='44px serif';c.fillText(info.icon,128,66+Math.sin(t/12)*3);
+    c.fillStyle='#fff';c.font='bold 20px monospace';c.fillText(info.name,128,98);
+    c.fillStyle='#9ab';c.font='11px monospace';c.fillText(info.how,128,116);
+    ['▶  Jogar','Dificuldade: ‹ '+LVN[LVL[id]]+' ›','↩  Voltar'].forEach((o,k)=>{const y=128+k*34,sel=k==i;
+      c.fillStyle=sel?'#d6282f':'#25254a';c.fillRect(24,y,208,30);c.strokeStyle=sel?'#fff':'#44448a';c.strokeRect(24.5,y+.5,207,29);
+      c.fillStyle='#fff';c.font='bold 14px monospace';c.fillText(o,128,y+20)});
+    c.textAlign='left'}}}
+function startNative(id){
+  if(id==='menu')runNative(GAMES.menu,'menu','menu');
+  else if(GAMES[id])runNative(()=>titleScreen(id),id,'title');
+}
+function runNative(factory,id,kind){
+  stopNative();stopMd();nes=null;system='native';setSlots();lastSent={};
+  paused=false;$('pause').textContent='⏸ Pausar';
+  $('screen').style.aspectRatio='256/240';cv.style.display='block';$('hint').style.display='none';
+  const g=factory();curG=id;curObj=g;curFactory=factory;curKind=kind;
+  status.textContent=(kind==='game'?'Jogando: ':'')+g.name+' — '+g.help+(kind==='game'?' · Select = voltar ao menu':'')+(kind==='menu'?' (versão 10)':'');
+  if(!running){running=true;last=performance.now();requestAnimationFrame(loop)}
+  const prev={};for(const a of ALL)prev[a]=held(a);let acc=0,lt=performance.now();
+  const step=t=>{
+    ngRaf=requestAnimationFrame(step);
+    if(paused){lt=t;return}
+    acc+=Math.min(t-lt,100);lt=t;
+    while(acc>=16.67){acc-=16.67;const h={},p={};for(const a of ALL){h[a]=held(a);p[a]=h[a]&&!prev[a];prev[a]=h[a]}
+      if(kind!=='menu'&&p.SELECT){startNative(kind==='game'?id:'menu');return}
+      g.update(h,p)}
+    g.draw(ctx);
+  };
+  ngRaf=requestAnimationFrame(step);
+}
+$('home').onclick=()=>startNative('menu');
+cv.addEventListener('pointerdown',e=>{if(system!=='native'||!curObj||!curObj.tap)return;const r=cv.getBoundingClientRect(),k=Math.min(r.width/256,r.height/240),ox=(r.width-256*k)/2,oy=(r.height-240*k)/2;curObj.tap((e.clientX-r.left-ox)/k,(e.clientY-r.top-oy)/k)});
+
+// Botões
+$('pause').onclick=()=>{
+  if(system!=='nes'&&emu){paused?emu.resume():emu.pause();paused=!paused}
+  else if(nes||system==='native'){paused=!paused}else return;
+  $('pause').textContent=paused?'▶ Continuar':'⏸ Pausar';
+};
+$('reset').onclick=()=>{if(system!=='nes'&&emu)emu.restart();else if(nes)nes.reset();else if(system==='native'&&curFactory)runNative(curFactory,curG,curKind);paused=false;$('pause').textContent='⏸ Pausar'};
+$('vol').oninput=e=>{vol=e.target.value/100};
+
+// Tela cheia (com os botões de toque por cima do jogo)
+const stage=$('stage');
+function setFs(on){stage.classList.toggle('fs',on);document.body.style.overflow=on?'hidden':''}
+function enterFs(){
+  setFs(true);
+  const rq=stage.requestFullscreen||stage.webkitRequestFullscreen;
+  if(rq){try{const p=rq.call(stage);if(p&&p.catch)p.catch(()=>{})}catch(e){}}
+  try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}
+}
+function exitFs(){
+  setFs(false);
+  try{if(document.fullscreenElement)document.exitFullscreen();else if(document.webkitFullscreenElement)document.webkitExitFullscreen()}catch(e){}
+  try{screen.orientation.unlock()}catch(e){}
+}
+$('fs').onclick=()=>stage.classList.contains('fs')?exitFs():enterFs();
+$('exitfs').onclick=exitFs;
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement)setFs(false);
+}));
+setSlots();
+if('ontouchstart' in window||navigator.maxTouchPoints>0)document.body.classList.add('touch');
+$('ctl').onclick=()=>document.body.classList.toggle('force');
+})();
+</script>
+</body>
+</html>
